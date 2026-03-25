@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Ambulance Dispatch System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Login Styles */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .ambulance-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+            background: #f5f7fa;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h2 {
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logout-btn {
+            padding: 8px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .main-container {
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 30px;
+        }
+
+        /* Form Section */
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            height: fit-content;
+        }
+
+        .form-card h3 {
+            margin-bottom: 25px;
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            background: #e9ecef;
+        }
+
+        /* Table Section */
+        .table-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .table-header h3 {
+            color: #333;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-box h4 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-box p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #555;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-busy {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-maintenance {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: white;
+        }
+
+        .edit-btn {
+            background: #3498db;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 968px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="ambulance-icon">🚑</div>
+                <h1>Smart Dispatch System</h1>
+                <p style="color: #666; margin-top: 10px;">Emergency Response Management</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" required>
+                        <option value="">Select Role</option>
+                        <option value="dispatcher">Dispatcher</option>
+                        <option value="admin">Administrator</option>
+                        <option value="supervisor">Supervisor</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn">Login to System</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="dashboard">
+        <div class="header">
+            <h2>🚑 Smart Ambulance Dispatch System</h2>
+            <div class="user-info">
+                <span id="loggedInUser">Welcome, User</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="main-container">
+            <!-- Ambulance Registration Form -->
+            <div class="form-card">
+                <h3>🚑 Register Ambulance</h3>
+                <form id="ambulanceForm">
+                    <div class="form-group">
+                        <label for="ambulanceName">Ambulance Name/ID</label>
+                        <input type="text" id="ambulanceName" placeholder="e.g., Alpha-1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vehicleNumber">Vehicle Number</label>
+                        <input type="text" id="vehicleNumber" placeholder="e.g., ABC-1234" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="driverName">Driver Name</label>
+                            <input type="text" id="driverName" placeholder="Driver name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="driverPhone">Driver Phone</label>
+                            <input type="tel" id="driverPhone" placeholder="Contact number" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vehicleType">Vehicle Type</label>
+                        <select id="vehicleType" required>
+                            <option value="">Select Type</option>
+                            <option value="Basic Life Support">Basic Life Support (BLS)</option>
+                            <option value="Advanced Life Support">Advanced Life Support (ALS)</option>
+                            <option value="Patient Transport">Patient Transport</option>
+                            <option value="Neonatal">Neonatal Ambulance</option>
+                            <option value="Air Ambulance">Air Ambulance</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Equipment Available</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="Defibrillator"> Defibrillator
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="Oxygen Cylinder"> Oxygen Cylinder
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="Ventilator"> Ventilator
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="Stretcher"> Stretcher
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="First Aid Kit"> First Aid Kit
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="Wheelchair"> Wheelchair
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Current Status</label>
+                        <select id="status" required>
+                            <option value="Available">Available</option>
+                            <option value="Busy">Busy</option>
+                            <option value="Maintenance">Under Maintenance</option>
+                            <option value="Offline">Offline</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Current Location</label>
+                        <input type="text" id="location" placeholder="Current station/location">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Additional Notes</label>
+                        <textarea id="notes" placeholder="Any special instructions or equipment details..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Add Ambulance</button>
+                    <button type="button" class="btn" onclick="resetForm()"
+                        style="margin-top: 10px; background: #95a5a6;">Clear Form</button>
+                </form>
+            </div>
+
+            <!-- Ambulance List -->
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>🚑 Registered Ambulances</h3>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <h4 id="totalCount">0</h4>
+                            <p>Total Units</p>
+                        </div>
+                        <div class="stat-box" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%);">
+                            <h4 id="availableCount">0</h4>
+                            <p>Available</p>
+                        </div>
+                    </div>
+                </div>
+
+                <table id="ambulanceTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Vehicle No.</th>
+                            <th>Type</th>
+                            <th>Driver</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ambulanceTableBody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+
+                <div id="emptyState" style="text-align: center; padding: 40px; color: #999; display: none;">
+                    <p>No ambulances registered yet. Add your first ambulance using the form.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store ambulances in memory (in real app, this would be a database)
+        let ambulances = [];
+        let currentUser = null;
+        let editingId = null;
+
+        // Login Handler
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const role = document.getElementById('role').value;
+
+            currentUser = {
+                username: username,
+                role: role,
+                loginTime: new Date().toLocaleString()
+            };
+
+            // Hide login, show dashboard
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('dashboard').style.display = 'block';
+
+            // Update user display
+            document.getElementById('loggedInUser').textContent = `Welcome, ${username} (${role})`;
+
+            // Load sample data if empty
+            if (ambulances.length === 0) {
+                loadSampleData();
+            }
+
+            updateTable();
+        });
+
+        // Logout Handler
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('loginForm').reset();
+                currentUser = null;
+            }
+        }
+
+        // Ambulance Form Handler
+        document.getElementById('ambulanceForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Get equipment checked
+            const equipment = [];
+            document.querySelectorAll('.checkbox-item input:checked').forEach(cb => {
+                equipment.push(cb.value);
+            });
+
+            const ambulanceData = {
+                id: editingId || Date.now(),
+                name: document.getElementById('ambulanceName').value,
+                vehicleNumber: document.getElementById('vehicleNumber').value,
+                driverName: document.getElementById('driverName').value,
+                driverPhone: document.getElementById('driverPhone').value,
+                vehicleType: document.getElementById('vehicleType').value,
+                equipment: equipment,
+                status: document.getElementById('status').value,
+                location: document.getElementById('location').value,
+                notes: document.getElementById('notes').value,
+                registeredBy: currentUser.username,
+                registeredAt: new Date().toLocaleString()
+            };
+
+            if (editingId) {
+                // Update existing
+                const index = ambulances.findIndex(a => a.id === editingId);
+                ambulances[index] = ambulanceData;
+                editingId = null;
+                alert('Ambulance updated successfully!');
+            } else {
+                // Add new
+                ambulances.push(ambulanceData);
+                alert('Ambulance registered successfully!');
+            }
+
+            resetForm();
+            updateTable();
+        });
+
+        // Update Table Display
+        function updateTable() {
+            const tbody = document.getElementById('ambulanceTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const table = document.getElementById('ambulanceTable');
+
+            // Update stats
+            document.getElementById('totalCount').textContent = ambulances.length;
+            document.getElementById('availableCount').textContent =
+                ambulances.filter(a => a.status === 'Available').length;
+
+            if (ambulances.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+
+            tbody.innerHTML = '';
+
+            ambulances.forEach(amb => {
+                const row = document.createElement('tr');
+
+                // Status badge class
+                let statusClass = '';
+                switch (amb.status) {
+                    case 'Available': statusClass = 'status-available'; break;
+                    case 'Busy': statusClass = 'status-busy'; break;
+                    case 'Maintenance': statusClass = 'status-maintenance'; break;
+                    default: statusClass = 'status-available';
+                }
+
+                row.innerHTML = `
+                    <td><strong>${amb.name}</strong></td>
+                    <td>${amb.vehicleNumber}</td>
+                    <td>${amb.vehicleType}</td>
+                    <td>${amb.driverName}<br><small>${amb.driverPhone}</small></td>
+                    <td><span class="status-badge ${statusClass}">${amb.status}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn edit-btn" onclick="editAmbulance(${amb.id})">Edit</button>
+                            <button class="action-btn delete-btn" onclick="deleteAmbulance(${amb.id})">Delete</button>
+                            <button class="action-btn" style="background: #27ae60;" onclick="viewDetails(${amb.id})">View</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Edit Ambulance
+        function editAmbulance(id) {
+            const amb = ambulances.find(a => a.id === id);
+            if (!amb) return;
+
+            editingId = id;
+            document.getElementById('ambulanceName').value = amb.name;
+            document.getElementById('vehicleNumber').value = amb.vehicleNumber;
+            document.getElementById('driverName').value = amb.driverName;
+            document.getElementById('driverPhone').value = amb.driverPhone;
+            document.getElementById('vehicleType').value = amb.vehicleType;
+            document.getElementById('status').value = amb.status;
+            document.getElementById('location').value = amb.location;
+            document.getElementById('notes').value = amb.notes;
+
+            // Check equipment
+            document.querySelectorAll('.checkbox-item input').forEach(cb => {
+                cb.checked = amb.equipment.includes(cb.value);
+            });
+
+            document.querySelector('.form-card').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Delete Ambulance
+        function deleteAmbulance(id) {
+            if (confirm('Are you sure you want to remove this ambulance?')) {
+                ambulances = ambulances.filter(a => a.id !== id);
+                updateTable();
+            }
+        }
+
+        // View Details (simple alert for demo)
+        function viewDetails(id) {
+            const amb = ambulances.find(a => a.id === id);
+            if (!amb) return;
+
+            alert(`
+AMBULANCE DETAILS
+----------------
+Name: ${amb.name}
+Vehicle No: ${amb.vehicleNumber}
+Type: ${amb.vehicleType}
+Driver: ${amb.driverName} (${amb.driverPhone})
+Status: ${amb.status}
+Location: ${amb.location || 'Not specified'}
+Equipment: ${amb.equipment.join(', ') || 'None'}
+Notes: ${amb.notes || 'None'}
+Registered: ${amb.registeredAt}
+            `);
+        }
+
+        // Reset Form
+        function resetForm() {
+            document.getElementById('ambulanceForm').reset();
+            editingId = null;
+        }
+
+        // Load Sample Data
+        function loadSampleData() {
+            ambulances = [
+                {
+                    id: 1,
+                    name: "Alpha-1",
+                    vehicleNumber: "EMS-2024-001",
+                    driverName: "John Smith",
+                    driverPhone: "555-0101",
+                    vehicleType: "Advanced Life Support",
+                    equipment: ["Defibrillator", "Oxygen Cylinder", "Ventilator", "Stretcher"],
+                    status: "Available",
+                    location: "Central Station",
+                    notes: "Fully equipped for cardiac emergencies",
+                    registeredBy: "System",
+                    registeredAt: "2024-01-01 08:00"
+                },
+                {
+                    id: 2,
+                    name: "Bravo-2",
+                    vehicleNumber: "EMS-2024-002",
+                    driverName: "Sarah Johnson",
+                    driverPhone: "555-0102",
+                    vehicleType: "Basic Life Support",
+                    equipment: ["Oxygen Cylinder", "Stretcher", "First Aid Kit"],
+                    status: "Busy",
+                    location: "En Route to Hospital",
+                    notes: "Standard BLS unit",
+                    registeredBy: "System",
+                    registeredAt: "2024-01-01 08:00"
+                }
+            ];
+        }
+    </script>
+</body>
+
+</html>
