@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-calm-50 text-gray-800 font-sans antialiased;
+    @apply bg-slate-950 text-slate-200 font-sans antialiased;
   }
 
   /* Large touch targets for emergency situations */
