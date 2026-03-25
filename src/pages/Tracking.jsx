@@ -29,9 +29,9 @@ export default function Tracking() {
   const [ambulance, setAmbulance] = useState(null);
   const [eta, setEta] = useState(null);
   
+  const [emergencyId, setEmergencyId] = useState(null);
   const [routePath, setRoutePath] = useState(null);
   const [initialEta, setInitialEta] = useState(null);
-  const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
 
   useEffect(() => {
     if (!state?.location) {
@@ -39,88 +39,96 @@ export default function Tracking() {
       return;
     }
 
-    const startLoc = {
-      lat: state.location.lat + 0.02,
-      lng: state.location.lng - 0.015
+    const createEmergencyRequest = async () => {
+      try {
+        const storedToken = localStorage.getItem('lifelink_token');
+        const userStr = localStorage.getItem('lifelink_user');
+        const userData = userStr ? JSON.parse(userStr) : null;
+        
+        const payload = {
+          userId: userData?.id || 'guest',
+          name: state.requestData?.witnessName || 'Unknown User',
+          phone: state.requestData?.witnessPhone || '0000000000',
+          location: `${state.location.lat},${state.location.lng}`
+        };
+
+        const res = await fetch('http://localhost:5000/api/emergency/request', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${storedToken}`
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        if (res.ok && data.emergencyId) {
+          setEmergencyId(data.emergencyId);
+        }
+      } catch (err) {
+        console.error("Failed to create emergency request", err);
+      }
     };
 
-    const fetchRoute = async () => {
+    createEmergencyRequest();
+  }, [state, navigate]);
+
+  // Polling for status
+  useEffect(() => {
+    if (!emergencyId || status === 'arrived') return;
+
+    const fetchRoute = async (startLoc, data) => {
       try {
-         // OSRM Public Routing API (Longitude,Latitude order)
-         const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${startLoc.lng},${startLoc.lat};${state.location.lng},${state.location.lat}?overview=full&geometries=geojson`);
-         const data = await res.json();
-         if (data.routes && data.routes.length > 0) {
-            // Leaflet requires Latitude, Longitude pairs
-            const coords = data.routes[0].geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+         const routeRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${startLoc.lng},${startLoc.lat};${state.location.lng},${state.location.lat}?overview=full&geometries=geojson`);
+         const routeData = await routeRes.json();
+         if (routeData.routes && routeData.routes.length > 0) {
+            const coords = routeData.routes[0].geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
             setRoutePath(coords);
-            
-            const durationMins = Math.max(1, Math.ceil(data.routes[0].duration / 60));
+            const durationMins = Math.max(1, Math.ceil(routeData.routes[0].duration / 60));
             setEta(durationMins);
             setInitialEta(durationMins);
             
             setAmbulance({
-              id: 'AMB-7842',
-              driverName: 'Rajesh Kumar',
-              driverPhone: '+91 98765 12345',
-              vehicleNumber: 'MH-02-AB-1234',
-              location: coords[0], // start exactly on the road
-              rating: 4.9,
+              id: data.ambulanceId || 'AMB-DISPATCH',
+              driverName: 'Assigned Responder',
+              driverPhone: 'Emergency Comm',
+              vehicleNumber: 'EN-ROUTE',
+              location: startLoc,
+              rating: 5.0,
             });
             setStatus('assigned');
          }
       } catch (err) {
-         console.error("Routing error", err);
-         // Fallback to strict straight line if API fails
          setRoutePath([startLoc, state.location]);
-         setAmbulance({
-            id: 'AMB-7842',
-            driverName: 'Rajesh Kumar',
-            driverPhone: '+91 98765 12345',
-            vehicleNumber: 'MH-02-AB-1234',
-            location: startLoc,
-            rating: 4.9,
-         });
-         setEta(3);
-         setInitialEta(3);
+         setAmbulance(prev => ({ ...prev, location: startLoc }));
          setStatus('assigned');
       }
     };
 
-    const searchTimer = setTimeout(fetchRoute, 2500);
-    return () => clearTimeout(searchTimer);
-  }, [state, navigate]);
-
-  // Simulate ambulance driving along the fetched route
-  useEffect(() => {
-    if (status === 'assigned' && routePath && currentRouteIndex < routePath.length) {
-      // Set interval to visually "drive" the ambulance through the coordinates
-      const timer = setInterval(() => {
-         setCurrentRouteIndex(prev => {
-           // Skip a few nodes to make simulation faster
-           const stepSize = Math.max(1, Math.floor(routePath.length / 50)); 
-           const nextIndex = prev + stepSize; 
-           
-           if (nextIndex >= routePath.length - 1) {
+    const checkStatus = async () => {
+      try {
+        const storedToken = localStorage.getItem('lifelink_token');
+        const res = await fetch(`http://localhost:5000/api/emergency/status/${emergencyId}`, {
+          headers: { 'Authorization': `Bearer ${storedToken}` }
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+           if (data.status === 'resolved') {
               setStatus('arrived');
               setEta(0);
-              return routePath.length - 1;
+           } else if (data.status === 'accepted' && data.ambulanceLocation) {
+              fetchRoute(data.ambulanceLocation, data);
            }
-           
-           setAmbulance(a => ({ ...a, location: routePath[nextIndex] }));
-           
-           // Dynamically recalculate ETA proportion based on remaining nodes
-           const remainingNodes = routePath.length - nextIndex;
-           const fractionRemaining = remainingNodes / routePath.length;
-           const newEta = Math.ceil(initialEta * fractionRemaining);
-           setEta(newEta === 0 ? 1 : newEta);
-           
-           return nextIndex;
-         });
-      }, 300); // update every 300ms for smooth animation
-      
-      return () => clearInterval(timer);
-    }
-  }, [status, routePath, currentRouteIndex, initialEta]);
+        }
+      } catch (err) {
+        console.error("Status polling error:", err);
+      }
+    };
+
+    const pollTimer = setInterval(checkStatus, 3000);
+    return () => clearInterval(pollTimer);
+  }, [emergencyId, status, state]);
 
   if (!state?.location) return null;
 
@@ -147,18 +155,19 @@ export default function Tracking() {
           
           {ambulance && routePath && (
             <>
-              {/* Only show the remaining Polyline path so it "eats" the route as it drives */}
+              {/* Draw the full real-time remaining path from the ambulance to user */}
               <Polyline 
-                positions={routePath.slice(currentRouteIndex)}
+                positions={routePath}
                 pathOptions={{
                   color: '#34d399',
                   weight: 6,
                   opacity: 0.9,
                   lineJoin: 'round',
-                  lineCap: 'round'
+                  lineCap: 'round',
+                  className: 'route-path-animation'
                 }}
               />
-              {/* Pulse effect under ambulance */}
+              {/* Live ambulance marker driven by real-world telemetry updates every 3s */}
               <Marker position={[ambulance.location.lat, ambulance.location.lng]} icon={ambulanceLogo} />
             </>
           )}

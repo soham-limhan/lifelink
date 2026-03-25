@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { db } = require('../config/firebase');
+const { admin, db } = require('../config/firebase');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_here_change_me_later';
 
@@ -131,6 +131,79 @@ router.post('/login', async (req, res) => {
       errorMsg = 'Firebase error. Have you clicked "Create Database" in your Firebase Firestore console?';
     }
     res.status(500).json({ error: errorMsg, details: error.message });
+  }
+});
+
+// Google Auth Verification
+router.post('/google', async (req, res) => {
+  try {
+    const { idToken, role } = req.body;
+    if (!idToken) return res.status(400).json({ error: 'Missing Google ID Token' });
+    if (!admin || !db) return res.status(500).json({ error: 'Database not initialized' });
+
+    // 1. Verify Google token securely using Firebase Admin
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email, name, picture } = decodedToken;
+
+    // 2. Lookup existing user in our Firestore system by email or uid
+    const usersRef = db.collection('users');
+    let snapshot = await usersRef.where('email', '==', email).get();
+    
+    if (snapshot.empty) {
+      snapshot = await usersRef.where('uid', '==', uid).get();
+    }
+
+    let userData;
+    let docId;
+
+    if (snapshot.empty) {
+      // 3. User does not exist, auto-register them
+      if (!role) {
+        return res.status(400).json({ error: 'Role is required for first-time Google sign-in' });
+      }
+
+      userData = {
+        uid,
+        email,
+        name: name || 'Google User',
+        phone: '', // Google might not provide phone
+        role,
+        picture: picture || '',
+        createdAt: new Date().toISOString()
+      };
+      
+      const docRef = await usersRef.add(userData);
+      docId = docRef.id;
+    } else {
+      // 4. User exists, grab their data
+      snapshot.forEach(doc => {
+        userData = doc.data();
+        docId = doc.id;
+      });
+    }
+
+    // 5. Generate our custom Express JWT to sync with the rest of the app
+    const token = jwt.sign(
+      { id: docId, email: userData.email, role: userData.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Google authentication successful',
+      token,
+      user: {
+        id: docId,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        picture: userData.picture || ''
+      }
+    });
+
+  } catch (error) {
+    console.error('Google Auth error:', error);
+    res.status(401).json({ error: 'Invalid Google Identity Token', details: error.message });
   }
 });
 
